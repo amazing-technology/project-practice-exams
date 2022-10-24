@@ -1,11 +1,11 @@
 from email.policy import default
 from enum import unique
+import django
 from django.conf import UserSettingsHolder
 from django.db import models
 from django.contrib.auth.models import User
-# from datetime import datetime
+from datetime import datetime
 from django.core.validators import RegexValidator
-# from django.template.defaultfilters import slugify
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 # Create your models here.
@@ -22,11 +22,13 @@ USERTYPE=(
 )
 
 class MyAccountManager(BaseUserManager):
-    def create_user(self, fullName,email,password=None):
+    def create_user(self,phone, fullName,email,password=None):
         if not email:
             raise ValueError('Users must have an email address')
         if not fullName:
             raise ValueError('Users must have a username')
+        if not phone:
+            raise ValueError('you must provide your phone')
 
         user = self.model(
             email=self.normalize_email(email),
@@ -96,14 +98,14 @@ class Exams(models.Model):
     no_of_ques = models.CharField(max_length=20)
     total_marks = models.CharField(max_length=20)
     time_duration = models.DurationField(default='00:00:00')
-    # start_time = models.DateTimeField(default=datetime.now())
-    # end_time = models.DateTimeField(default=datetime.now())
+    start_time = models.DateTimeField(default=django.utils.timezone.now)
+    end_time = models.DateTimeField(default=django.utils.timezone.now)
     timestamps = models.DateTimeField(auto_now_add=True, null=False)
     exam_status =models.BooleanField(default = False)
 
 
     def __str__(self):
-        return str(self.exam_name)
+        return f'{self.exam_name} => {self.createdby}'
 
 class Marks(models.Model):
     exam_name = models.ForeignKey(Exams, on_delete=models.PROTECT, null=True)
@@ -153,12 +155,14 @@ class Question(models.Model):
     questionCategory = models.CharField(choices=questionCategory, max_length=255, blank=False,null= True)
     exam_name = models.ForeignKey(Exams, on_delete=models.CASCADE)
     marks = models.PositiveIntegerField(default=0)
-    question = models.TextField(max_length=500)
-    optionA = models.CharField(max_length=100)
-    optionB = models.CharField(max_length=100)
-    optionC = models.CharField(max_length=100)
-    optionD = models.CharField(max_length=100)
-    choose = (('A', 'option1'), ('B', 'option2'), ('C', 'option3'), ('D', 'option4'))
+    question = models.TextField(max_length=500, blank = True, null = True)
+    optionA = models.CharField(max_length=100, blank = True, null = True)
+    optionB = models.CharField(max_length=100, blank = True, null = True)
+    optionC = models.CharField(max_length=100, blank = True, null = True)
+    optionD = models.CharField(max_length=100, blank = True, null = True)
+    optionE = models.CharField(max_length=100, blank = True, null = True)
+    optionF = models.CharField(max_length=100, blank = True, null = True)
+    choose = (('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'),('E', 'E'),('F', 'F'))
     answer = models.CharField(max_length=1, choices=choose)
     timestamps = models.DateTimeField(auto_now_add=True, null=False)
     status =models.BooleanField(default=False)
@@ -166,7 +170,7 @@ class Question(models.Model):
 
 
     def __str__(self):
-        return f'Question No.{self.qno}: {self.question} \t\t Options: \nA. {self.optionA} \nB.{self.optionB} \nC.{self.optionC} \nD.{self.optionD} '
+        return f'Question No.{self.qno}: {self.createdby} \t\t Options: \nA. {self.optionA} \nB.{self.optionB} \nC.{self.optionC} \nD.{self.optionD} \nE.{self.optionE} \nF.{self.optionF}'
 
 
 
@@ -184,7 +188,7 @@ class Set(models.Model):
 class Answers(models.Model):
     question  = models.ForeignKey(Question, on_delete=models.CASCADE)
     aded_by = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
-    choose = (('A', 'option1'), ('B', 'option2'), ('C', 'option3'), ('D', 'option4'))
+    choose = (('A', 'B'), ('B', 'B'), ('C', 'C'), ('D', 'D'),('E','E'),('F','F'))
     answer = models.CharField(max_length=1, choices=choose)
     timestamps = models.DateTimeField(auto_now_add=True, null=False)
     status =models.BooleanField(default=False)
@@ -197,11 +201,12 @@ class Candidates(models.Model):
     user = models.OneToOneField(Users, on_delete=models.CASCADE, null=True)
     exam =  models.ForeignKey(Exams, on_delete=models.CASCADE)
     score = models.IntegerField(default=0)
-    status =models.BooleanField(default=False)
     timestamps = models.DateTimeField(auto_now_add=True, null=False)
+    status =models.BooleanField(default=False)
 
-
-
+    def __str__(self):
+        return f"{self.user}, {self.score}"
+    
 class Quastion_db(models.Model):
      questionCategory = [
     
@@ -229,9 +234,12 @@ class Quastion_db(models.Model):
 ]
      questionCategory = models.CharField(choices=questionCategory, max_length=255, blank=False,null= True)
      questionName = models.TextField(max_length=500)
-     optionA = models.CharField(max_length=100)
-     optionB = models.CharField(max_length=100)
-     optionC = models.CharField(max_length=100)
-     optionD = models.CharField(max_length=100)
-     choose = (('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'))
+     optionA = models.CharField(max_length=100, blank = True, null = True)
+     optionB = models.CharField(max_length=100, blank = True, null = True)
+     optionC = models.CharField(max_length=100, blank = True, null = True)
+     optionD = models.CharField(max_length=100, blank = True, null = True)
+     optionE = models.CharField(max_length=100, blank = True, null = True)
+     optionF = models.CharField(max_length=100, blank = True, null = True)
+     choose = (('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'),('E', 'E'),('F', 'F'))
      answer = models.CharField(max_length=1, choices=choose)
+    
