@@ -39,4 +39,4 @@ class Answer(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return '%c: %s' % (self.al_order, self.answer_content)
+        return '%c: %s' % (self.order, self.answer_content)
