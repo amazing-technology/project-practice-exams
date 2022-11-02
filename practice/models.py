@@ -7,6 +7,8 @@ from django.contrib.auth.models import User
 from datetime import datetime
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.utils.timezone import now
+from django.utils import timezone
 
 # Create your models here.
 
@@ -88,40 +90,55 @@ class Users(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
 
-
-
-
-
 class Exams(models.Model):
     createdby = models.ForeignKey(Users, on_delete=models.CASCADE)
     exam_name = models.CharField(max_length=50)
-    no_of_ques = models.CharField(max_length=20)
-    total_marks = models.CharField(max_length=20)
-    time_duration = models.DurationField(default='00:00:00')
+    description = models.TextField(null="True", blank=True)
     start_time = models.DateTimeField(default=django.utils.timezone.now)
     end_time = models.DateTimeField(default=django.utils.timezone.now)
-    timestamps = models.DateTimeField(auto_now_add=True, null=False)
+    no_of_ques = models.CharField(max_length=20)
+    attempts_allowed = models.IntegerField(blank = True, null = True)
+    pass_percentage = models.IntegerField(blank = True, null = True)   
+    total_marks = models.CharField(max_length=20)
+    time_duration = models.DurationField(default='00:00:00')
+   
+    created = models.DateTimeField(default = timezone.now)
+    modified = models.DateTimeField(default = timezone.now)
     exam_status =models.BooleanField(default = False)
 
 
     def __str__(self):
-        return f'{self.exam_name} => {self.createdby}'
+        return f'{self.exam_name}'
+        
+class Candidates(models.Model):
+    user_id = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    exam_id =  models.ForeignKey(Exams, on_delete=models.CASCADE)
+    attempt_no = models.IntegerField()
+    registered = models.IntegerField(default = 0)
+    view_answers  = models.IntegerField(default = 0)
+    answered = models.IntegerField(default = 0)
+    score = models.IntegerField(default=0)
+    registered_time = models.DateTimeField(default = timezone.now)
+    status =models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.id) + "; " + str(self.user_id) + "; " + str(self.exam_id) + "; " + str(self.attempt_no) + "; " + str(self.registered) + "; " + str(self.view_answers) + "; " + str(self.answered) + "; " + str(self.registered_time)
 
 class Marks(models.Model):
-    exam_name = models.ForeignKey(Exams, on_delete=models.PROTECT, null=True)
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    exam_id = models.ForeignKey(Exams, on_delete=models.PROTECT, null=True)
+    registration_id = models.ForeignKey(Candidates, on_delete = models.CASCADE, blank = False,null = True)
     no_ques_attempt = models.Count
     no_ques_unattempt = models.Count
     no_ques_right = models.Count
     no_ques_wrong = models.Count
-    total_mark = models.Count
+    answer = models.TextField(null="True", blank=True)
+    total_marks = models.Count
     DESTION = ({'pass', 'PASS'}, {'fail', 'FAIL'})
     decision = models.CharField(max_length=255,choices = DESTION)
-    timestamps = models.DateTimeField(auto_now_add=True, null=False)
-    status =models.BooleanField(default=False)
+    verify = models.IntegerField(default = 0)
 
-    def __str__(self):
-        return f"{self.exam_name}, {self.user}, {self.decision}"
+    def __str__(self):  
+        return str(self.id) + "; " + str(self.registration_id) + "; " + str(self.exam_id) + "; " + str(self.answer) + "; " + str(self.total_marks) + "; " + str(self.verify) 
 
 
 questionCategory = [
@@ -153,7 +170,7 @@ class Question(models.Model):
     qno = models.AutoField(primary_key=True)
     createdby  = models.ForeignKey(Users, on_delete=models.PROTECT, null=True)
     questionCategory = models.CharField(choices=questionCategory, max_length=255, blank=False,null= True)
-    exam_name = models.ForeignKey(Exams, on_delete=models.CASCADE)
+    exam_id = models.ForeignKey(Exams, on_delete=models.CASCADE)
     marks = models.PositiveIntegerField(default=0)
     question = models.TextField(max_length=500, blank = True, null = True)
     optionA = models.CharField(max_length=100, blank = True, null = True)
@@ -164,7 +181,7 @@ class Question(models.Model):
     optionF = models.CharField(max_length=100, blank = True, null = True)
     choose = (('A', 'A'), ('B', 'B'), ('C', 'C'), ('D', 'D'),('E', 'E'),('F', 'F'))
     answer = models.CharField(max_length=1, choices=choose)
-    timestamps = models.DateTimeField(auto_now_add=True, null=False)
+    timestamps = models.DateTimeField(default=now)
     status =models.BooleanField(default=False)
 
 
@@ -178,35 +195,30 @@ class Set(models.Model):
     set_no = models.PositiveIntegerField(default=0)
     ques = models.ManyToManyField(Question)
     no_of_question = models.Count(Question.question)
-    exam_name = models.ForeignKey(Exams, on_delete=models.CASCADE)
+    exam_id = models.ForeignKey(Exams, on_delete=models.CASCADE)
 
     def __str__(self):
         
-        return f' Question practice Title :- {self.exam_name}, {self.set_no}\n'
+        return f' Question practice Title :- {self.exam_id}, {self.set_no}\n'
 
 
 class Answers(models.Model):
-    question  = models.ForeignKey(Question, on_delete=models.CASCADE)
+    question_id  = models.ForeignKey(Question, on_delete=models.CASCADE)
     aded_by = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
     choose = (('A', 'B'), ('B', 'B'), ('C', 'C'), ('D', 'D'),('E','E'),('F','F'))
-    answer = models.CharField(max_length=1, choices=choose)
-    timestamps = models.DateTimeField(auto_now_add=True, null=False)
+    answer = models.CharField(max_length=1, choices=choose, null="True", blank=True)
+    timestamps = models.DateTimeField(default = timezone.now)
     status =models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.question}, {self.answer}"
-
-
-class Candidates(models.Model):
-    user = models.OneToOneField(Users, on_delete=models.CASCADE, null=True)
-    exam =  models.ForeignKey(Exams, on_delete=models.CASCADE)
-    score = models.IntegerField(default=0)
-    timestamps = models.DateTimeField(auto_now_add=True, null=False)
-    status =models.BooleanField(default=False)
-
+        return str(self.id) + "; " + str(self.question_id) + "; " + str(self.answer)
+class MatchTheColumns(models.Model):
+    question_id = models.ForeignKey(Question, on_delete=models.CASCADE)
+    question = models.TextField(null="True", blank=True)
+    answer = models.TextField(null="True", blank=True)
     def __str__(self):
-        return f"{self.user}, {self.score}"
-    
+        return str(self.id) + "; " + str(self.question_id) + "; " + str(self.question) + "; " + str(self.answer)
+
 class Quastion_db(models.Model):
      questionCategory = [
     
